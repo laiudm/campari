@@ -1,0 +1,102 @@
+.player-row:after, .opponents:after, .playArea:after,  .drawArea:after {	/* https://css-tricks.com/snippets/css/clear-fix/ clears the floats of all children*/
+  clear: both;
+  content: "";
+  display: table;
+}
+
+.drawArea {
+  float: center;
+  padding: 5;
+}
+
+.dragArea {
+  background: #aaa;
+  height: 30px;
+  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;	/* all these alternatives work. The circle isn't quite centred */
+  text-align: center;
+  cursor: move;
+}
+
+.playArea {
+  float: none;
+  margin: auto;
+}
+
+
+.player {
+  height: 240px;
+  width: 250px;
+  padding: 2;
+  border: 2px solid #999;
+  margin: 2px;
+
+  float: left;
+  
+  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;	/* all these alternatives work. The circle isn't quite centred */
+  text-align: center;
+}
+
+.draggable {
+  position: absolute;
+}
+
+.campari {
+	
+}
+
+.Player0 {
+  background: #f88;
+}
+
+.Player1 {
+  background: #8f8;
+}
+
+.Player2 {
+  background: #88f;
+}
+
+.Player3 {
+  background: #ff8;
+}
+
+.Player4 {
+  background: #8ff;
+}
+
+.card {
+  padding: 0px;
+  border: 0px solid #fff;
+  margin: 1px;
+  disabled: true;
+  cursor: move;	/* change the cursor style http://www.javascripter.net/faq/stylesc.htm*/
+  width: 79px;
+  height: 105px;
+  float: left;
+}
+
+.nocard {
+  padding: 0px;
+  border: 1px solid #fff;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  margin-right: 6px;
+  margin-left: 6px;
+  width: 67px;
+  height: 90px;
+
+  background: #f8f8f8;
+  disabled: true;
+  /* cursor: move;	 change the cursor style http://www.javascripter.net/faq/stylesc.htm*/
+  float: left;
+}
+
+.bottomMargin {
+  height: 20px;
+}
+
+canvas {
+  width: 400px;
+  height: 300px;
+  border: 5px solid black;
+}
