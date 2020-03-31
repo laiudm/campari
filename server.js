@@ -43,6 +43,10 @@ function fillArrayWithRange(start, n) {	// https://2ality.com/2013/11/initializi
 	return arr.map(function (x, i) { return i+start });
 }
 
+function extract(id) {
+		return[ id.substr(1,1), id.substr(2,1)];
+}
+
 // Campari Game Code
 
 // Cards. 0 = no card, 1 = Ace Spades, 2 = 2 Spades, ..., 52 = King Hearts, 53 = Joker, 54 = rear of card
@@ -50,10 +54,13 @@ var cardDeck = {};		// the cards in the pick-up pile
 var discards = [];		// cards that have been discarded
 var cards = {};			// the cards as dealt & are displayed
 let rear = 54;			// id of the image displaying the card's rear
+let dragCard = 55;		// id of the image displaying 'dragging' 
 
 var players = {};		// each client connection, keyed by the socket.id. Hard coded for 5 players currently.
 var playerIDs = fillArrayWithRange(0, 5);	// allocated ids from this 'stack', and return them when the connection closes
 var showAllCards = false;	// true when the game is over
+
+var playerNames = ['not connected', 'not connected', 'not connected', 'not connected', 'not connected', ];
 
 
 function shuffleDeck(deck) {	// in-place shuffle
@@ -108,8 +115,14 @@ io.on('connection', function(socket) {
 	//if (players[socket.id] != null && players[socket.id] != undefined ) {
 		console.log("deleting " + socket.id);
 		playerIDs.unshift(players[socket.id].id);	// return the player id for re-use.
+		playerNames[players[socket.id].id] ='disconnected';
 		delete players[socket.id];
 	//}
+  });
+  
+  socket.on('name', function(update) {
+	playerNames[update.thisPlayer] = update.playerName;
+	io.sockets.emit('names', playerNames);
   });
   
   socket.on('mouseover', function(data) {
@@ -261,6 +274,18 @@ setInterval(function() {
 			}
 		}
 	}
+	
+	// mark any cards that are being dragged
+	for (let [_, player] of Object.entries(players)) {
+		let dragging = player.dragging;
+		if (dragging == 'D2') cardsHidden.drawarea[2] = dragCard;
+		if (dragging == 'D1') cardsHidden.drawarea[1] = dragCard;
+		if (dragging.startsWith('P')) {
+			[p, c] = extract(dragging);
+			cardsHidden.players[p][c] = dragCard;
+		}
+
+	}		
 
 	io.sockets.emit('cards', cardsHidden);
 }, 1000 / 5);

@@ -12,7 +12,7 @@
 .dragArea {
   background: #aaa;
   height: 30px;
-  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;	/* all these alternatives work. The circle isn't quite centred */
+  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;
   text-align: center;
   cursor: move;
 }
@@ -22,18 +22,42 @@
   margin: auto;
 }
 
+.icon {
+  height: 35px;
+  width: 30px;
+  font-size: /*1.25vw;*/ /* 1.5em; */ 22px;	/* all these alternatives work. */
+  text-align: center;
+  line-height: 35px;	/* make the same as height to centre the text. See https://www.w3schools.com/css/css_align.asp*/
+}
+
+h1 {
+  text-align: center;
+}
 
 .player {
   height: 240px;
   width: 250px;
   padding: 2;
-  border: 2px solid #999;
+  border: 4px solid #999;
   margin: 2px;
 
   float: left;
   
-  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;	/* all these alternatives work. The circle isn't quite centred */
+  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;	/* all these alternatives work */
   text-align: center;
+}
+
+.entry {
+  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;
+  width: 250px;
+  background: none;
+  border: none;
+  text-align: center;
+  outline: none;	/* remove blue line around input field when selected.  https://stackoverflow.com/questions/1457849/how-to-remove-the-border-highlight-on-an-input-text-element*/
+}
+
+.bolded {
+  border: 4px solid #000;
 }
 
 .draggable {
@@ -41,7 +65,9 @@
 }
 
 .campari {
-	
+  height: 800px;
+  width: 802px;
+  background: #eee;
 }
 
 .Player0 {
@@ -62,6 +88,11 @@
 
 .Player4 {
   background: #8ff;
+}
+
+
+.card.draggable {	/* https://stackoverflow.com/questions/11918491/using-two-css-classes-on-one-element, https://www.w3.org/TR/selectors-3/#specificity*/
+  padding: 7px;
 }
 
 .card {

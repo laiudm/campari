@@ -12,9 +12,14 @@ var socket = io();
 
 
 var thisPlayer = -1;		// the server will initialise this
+var playerName = '';
+
 socket.on('playerID', function(data) {
   console.log(`PlayerID: ${data}`);
   thisPlayer = data;
+  playerName = 'Player ' + data;
+  socket.emit('name', {thisPlayer, playerName});
+  playerName = 'enter your name';
 });
 
 class CursorPlay extends Component {
@@ -34,22 +39,28 @@ class CursorPlay extends Component {
 	}
 }
 
-// Cambio Card Game code starts here:
+// Campari Card Game code starts here:
 
-// Todos: _lots_
+// Todos:
+// Tidy "shuffle" display, UI
 // * centre "My Cards"
-// * prevent highlighting text, elements when dragging
-// * allow name entry
-// * tidy "shuffle" display, UI
 // properly centre the drawArea
+// * prevent highlighting text, elements when dragging
 // prevent scroll bars appearing
 // offset second discard slightly to make look more like a pile
-// have 3 players top, 2 bottom. Your position determined at connection.
-// Somehow identify which player you are.
-// When dragging show which card is being dragged. Sigh.
-// Allow variable no. of players
+// some elements have 'disabled' which is invalid
+// Allow variable no. of players - not really needed
+
 
 // Done:
+// Allow name entry. Change 'div' to input for my display. Wire entry to sending messages to server. Server sends updated names whenever. names held in preact state.
+// - how stop server updates overwriting name being typed? Include names in 'cards' message? Maybe initially generate local name from playerID, & never update it remotely. 
+// - Server just broadcasts any name message it receives (name message would include playerID).
+// colored border when dragging card - know who's dragging
+// Improve hand icon - make bigger & more background color
+// Somehow identify which player you are.
+// have 3 players top, 2 bottom. Your position determined at connection.
+// When dragging show which card is being dragged. Sigh.
 // * specific value for "no-card"
 // * add display mouse drag for all players - icon could be hand https://unicode-table.com/en/270B/ U+270B or an arrow (https://unicode-table.com/en/search/?q=arrow). eg https://unicode-table.com/en/2B66/
 // Implement all game logic
@@ -81,9 +92,11 @@ function mapCardToName(card) {
 	let name = "";
 	if (card == 54) {			// rear of card
 		name = 'b';
+	} else if (card == 55) {	// card being dragged
+		name ='bd';
 	} else if (card == 53) {	// joker
-		name = "j";
-	} else {
+		name = 'j';
+	}else {
 		card--;
 		let no = card % 13;
 		let suit = Math.floor(card / 13);
@@ -118,9 +131,18 @@ class Card extends Component {
 class Player extends Component {
 	
 	render(props, state) {
-		let t = props.cards[0];
-		let t1 = props.cards[5];
-		return h('div', {className: 'player Player' + props.playerID}, props.name, 
+		let renderingThisPlayer = props.playerID == thisPlayer;
+		let bolded = (renderingThisPlayer) ? ' bolded' : '';
+		return h('div', {className: 'player Player' + props.playerID + bolded}, 
+			(renderingThisPlayer 
+				? h('input', {className: 'entry', value: playerName,
+						oninput: e => {	// such a dirty hack! Should ideally keep the name as a state & pass upward, but hey!
+							playerName = e.srcElement.value; 
+							socket.emit('name', {thisPlayer, playerName})
+						},
+						onfocus: e => {	e.srcElement.select() }	// highlight all the text when clicking on the input box
+				})
+				: h('div', null, props.name)), 
 			range(0,2).map( (r) => h('div', {className: 'player-row'}, 
 				range(0, 3).map( (c) => (h(Card, {card: props.cards[r*3 + c], playerID: props.playerID, id: "P" + props.playerID + (r*3 + c) })))	// {type: "player", player: props.playerID, card: (r*3 + c)} 
 				)
@@ -131,17 +153,23 @@ class Player extends Component {
 
 class DrawArea extends Component {
 	
+	// http://jsfiddle.net/wUrdM/ relative positioning
+	// https://stackoverflow.com/questions/11143273/position-div-relative-to-another-div
 	render(props, state) {
 		return h('center', {className: "drawArea"}, 
-			h(Card, {card: props.cards[0],  id: 'D0'}),
-			h(Card, {card: props.cards[1], id: 'D1'}),
+			h('div', {position: 'relative'}, 
+				h(Card, {card: props.cards[0],  id: 'D0'}),
+				h('div', {position: 'absolute', top: '10px', left: '30px'}, 
+					h(Card, {card: props.cards[1], id: 'D1'})
+				)
+			),
 			h(Card, {card: props.cards[2], id: 'D2'}),
 			h('button', {id: 'shuffle'}, "Shuffle"),
 			h('button', {id: 'showCards'}, "Show Cards"),
 			h('div', null, '10: peek at own card'),
 			h('div', null, 'J: peek at anothers card'),
 			h('div', null, 'Q: swap own card with another'),
-			h('div', null, 'Black K: 0 points'),
+			h('div', null, 'Red K: 0 points'),
 			)
 	}
 }
@@ -158,23 +186,23 @@ class DraggedCards extends Component {
 	//http://jsfiddle.net/f5EMT/1/ mouse draggable element // https://blog.bitsrc.io/5-ways-to-style-react-components-in-2019-30f1ccc2b5b
 	
 	render (props, state) {
-		// 3 variations -
-		// - for own mouse, just render the dragged card (if any). Rely on browser displaying curror.
+		// - for own mouse, just render the dragged card (if any). Rely on browser to display curror.
 		// - for others mouse - render the dragged card (if any), otherwise display their cursor
 
 		return 	h('div', null,
 				props.mice.map( mouse => (
 					(mouse.cardID == 0) 
-					? h('div', {className: 'draggable Player'+mouse.id,
+					? h('div', {className: 'draggable icon Player'+mouse.id,
 						style: {left: mouse.x, top: mouse.y, visibility: (mouse.id == thisPlayer ? 'hidden' : 'visible')},
 						}, '\u270B')	// hand icon
 					: h('img', {src: "/static/cardimages/" + mapCardToName(mouse.cardID) + ".gif", 
-						className: 'card draggable Player'+mouse.id, 
+						className: 'card draggable Player' + mouse.id, 
 						style: {left: mouse.x, top: mouse.y, visibility: (mouse.cardID > 0 ? 'visible' : 'hidden')},
 						onmousedown: (e => e.preventDefault()),	// stop the image being highlighted when dragged
-						}))
+						})
+					)
 				)
-			)
+		)
 	}
 }
 
@@ -212,7 +240,8 @@ class Cambio extends Component {
 		this.state = {
 			cards: cards,
 			mice: [],
-			mouse: {x: 0, y: 0, buttons: 0}	// temp
+			//mouse: {x: 0, y: 0, buttons: 0},	// temp
+			names: ['', '', '', '', '',],
 		};
 		
 		// mouse tracking
@@ -228,11 +257,16 @@ class Cambio extends Component {
 		
 		// messages from the server
 		socket.on('cards', (cards) => {
-			this.setState( {cards: cards, mice: this.state.mice} );
+			this.setState( {cards: cards, mice: this.state.mice, names: this.state.names} );
 		});
 		
 		socket.on('mice', (mice) => {
-			this.setState( {cards: this.state.cards, mice: mice} );
+			this.setState( {cards: this.state.cards, mice: mice, names: this.state.names} );
+		});
+		
+		socket.on('names', (update) => {	// update all new names as they arrive
+			console.log(JSON.stringify(update));
+			this.setState( {cards: this.state.cards, mice: this.state.mice, names: update} );
 		});
 	}
 	
@@ -248,14 +282,14 @@ class Cambio extends Component {
 		this.mouse.x = e.clientX;
 		this.mouse.y = e.clientY;
 		this.mouse.buttons = e.buttons;	
-		socket.emit('mousedown', this.mouse);	// need to report this immediately as an event
+		socket.emit('mousedown', this.mouse);	// report this immediately as an event
 	}
 	
 	onMouseUp(e) {
 		this.mouse.x = e.clientX;
 		this.mouse.y = e.clientY;
 		this.mouse.buttons = e.buttons;	
-		socket.emit('mouseup', this.mouse);		// need to report this immediately as an event
+		socket.emit('mouseup', this.mouse);		// report this immediately as an event
 	}
 		
 	onMouseOut(e) {
@@ -268,18 +302,18 @@ class Cambio extends Component {
 
 	render(props, state) {
 	
-		return h('div', {className: "campari", 
+		return h('div', { //className: "campari", 
 						onmousemove: e => this.onMouseMove(e), 
 						onmousedown: e=>this.onMouseDown(e), 
 						onmouseup: e=>this.onMouseUp(e), 
 						onmouseout: e => this.onMouseOut(e)}, 
 			h('div', {className: 'opponents'}, 
-				range(0, 3).map( (c) => h(Player, {name: 'Player ' + c, index: c, playerID: c, cards: state.cards.players[c]}))),
+				range(0, 3).map( (c) => h(Player, {name: state.names[c], index: c, playerID: c, cards: state.cards.players[c]}))),
 			h(DrawArea, {cards: state.cards.drawarea}),
 			h('div', {className: 'opponents'}, 
-				range(3, 2).map( (c) => h(Player, {name: 'Player ' + c, index: c, playerID: c, cards: state.cards.players[c]}))),
+				range(3, 2).map( (c) => h(Player, {name: state.names[c], index: c, playerID: c, cards: state.cards.players[c]}))),
 			h(DragArea),
-			h('div', {className: 'bottomMargin'}),	// need this to allow drag to DragArea from below
+			h('div', {className: 'bottomMargin'}),	// need this to allow drag to the DragArea from below
 			h(DraggedCards, {mice: this.state.mice}),
 
 
@@ -290,11 +324,13 @@ class Cambio extends Component {
 class App extends Component {
 	
 	render(props, state) {
-		return	h("div", null, h(Cambio),
+		return	h("div", {className: "campari",}, 
+			h('h1', null, 'Campari'),
+			h(Cambio),
 		);
 	}
 }
 
-render(h(App, null), document.body);
+render(h(App), document.body);
 
 
