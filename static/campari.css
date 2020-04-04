@@ -1,0 +1,192 @@
+*{
+	font-family: Arial;	/* Set font for entire page: https://stackoverflow.com/questions/10041706/applying-a-single-font-to-an-entire-website-with-css */
+}
+
+h1 {
+  text-align: center;
+}
+img {
+  padding: 5px;
+}
+
+.campari {
+  display: inline-block;
+  height: 850px;
+  width: 820px;
+  background: #eee;
+}
+
+.players {
+	text-align: center;
+	padding: 10px 1px 10px 1px;
+	margin-left: auto;	/* centre it horizontally */
+	margin-right: auto;
+}
+
+.player {
+  display: inline-block;
+  vertical-align: top;
+  height: 240px;
+  width: 250px;
+  padding: 2px;
+  border: 4px solid #999;
+  margin: 2px;
+}
+
+.nameEntry, .snapHeader{
+  padding-bottom: 0px;
+  width: 250px;
+  background: none;
+  border: none;
+  font-size: 1.5em; /* 24px; */	/* all these alternatives work */
+  text-align: center;
+  outline: none;	/* remove blue line around input field when selected.  https://stackoverflow.com/questions/1457849/how-to-remove-the-border-highlight-on-an-input-text-element*/
+}
+
+.bolded {
+  border-color: #000;
+}
+
+.Player0 {
+  background: #5e65ec;
+}
+
+.Player1 {
+  background: #eb529e;
+}
+
+.Player2 {
+  background: #6de758;
+}
+
+.Player3 {
+  background: #f8ce29;
+}
+
+.Player4 {
+  background: #fa8045;
+}
+.card-row {
+
+}
+
+.card {
+  display: inline-block;
+  padding: 0px;
+  border: 0px solid #fff;
+  margin: 1px;
+  cursor: move;	/* change the cursor style http://www.javascripter.net/faq/stylesc.htm*/
+  width: 79px;
+  height: 105px;
+}
+
+.drawArea {
+  padding: 20px 5px 20px 5px;
+  display: flex;
+
+}
+
+.helpText {
+  flex: 1;
+  display: inline-block;
+}
+
+.helpLine {
+	font-size: 1em;
+
+}
+
+.drawCards {
+  flex: 1;
+  height: 120px;
+}
+
+.discardPile {
+  position: relative;	/* make this the parent to which the discarded card is offset from */
+  margin-left: 40px;
+  display: inline-block;
+}
+
+.discardUpper {
+  position: absolute;
+  top: 9px;
+  left: 13px;
+}
+
+.discardLower {
+  display: inline-block;
+}
+
+.drawPile {
+  padding-left: 20px;
+  display: inline-block;
+}
+
+.buttons {
+  flex: 1;
+}
+
+
+button {
+	display: block;
+	padding: 2px;
+	margin-left: auto;	/* centre it horizontally */
+	margin-right: auto;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	font-size: 1em;
+}
+
+.dragArea {
+  background: #aaa;
+  height: 30px;
+  font-size: /*1.25vw;*/ /* 1.5em; */ 24px;
+  text-align: center;
+  cursor: move;
+}
+
+.playerMouse {
+  height: 35px;
+  width: 30px;
+  font-size: /*1.25vw;*/ /* 1.5em; */ 22px;	/* all these alternatives work. */
+  text-align: center;
+  line-height: 35px;	/* make the same as height to centre the text. See https://www.w3schools.com/css/css_align.asp*/
+  /* doesn't work content: '\270B';	*/	/* hand icon: hand https://unicode-table.com/en/270B/ */
+}
+
+.draggable {
+  position: absolute;
+}
+
+.card.draggable {	/* https://stackoverflow.com/questions/11918491/using-two-css-classes-on-one-element, https://www.w3.org/TR/selectors-3/#specificity*/
+  padding: 7px;
+}
+
+.snaps {
+  vertical-align: top;
+  display: inline-block;
+  height: 240px;
+  width: 250px;
+  padding: 2px;
+  border: 4px solid #999;
+  margin: 2px;
+}
+
+.snapHeaderr {
+
+  text-align: center;
+  font-size: 1.5em;
+}
+
+.snapTime {
+  font-size: 1em;
+}
+
+.snapButton {
+  vertical-align: bottom;
+}
+
+.bottomMargin {
+  height: 20px;
+}
+

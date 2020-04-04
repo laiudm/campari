@@ -42,17 +42,35 @@ class CursorPlay extends Component {
 // Campari Card Game code starts here:
 
 // Todos:
-// Tidy "shuffle" display, UI
-// * centre "My Cards"
-// properly centre the drawArea
+
+// improve snap times display
+
+// more visual feedback when dragging - show when drag is valid:
+// - each card has a border - change the border-colour to that of the dragger when it's a valid drag
+// - would need to add logic to mouseover event in server, and messages from server to clients need to include border-colours
+// - 
+// more visual feedback when dragging - flash cards to indicate success
+// more visual feedback when dragging - animate card swap
+
+
 // * prevent highlighting text, elements when dragging
 // prevent scroll bars appearing
-// offset second discard slightly to make look more like a pile
 // some elements have 'disabled' which is invalid
+// offset card drag to over the card - hard because it affects mouse-out events. Solve instead with improved visual feedback?
 // Allow variable no. of players - not really needed
 
 
 // Done:
+// more visual feedback when dragging - show when drag is valid
+// - when valid, target card shows 'dragging' card
+// space bar for snap
+// can't drag from one hand to another - a consequence of calling snap with another person's card.
+// can't drag from discard pile onto hand - should swap.
+// offset second discard slightly to make look more like a pile
+// drag empty displays drag
+// Tidy "shuffle" display, UI
+// * centre "My Cards"
+// properly centre the drawArea
 // Allow name entry. Change 'div' to input for my display. Wire entry to sending messages to server. Server sends updated names whenever. names held in preact state.
 // - how stop server updates overwriting name being typed? Include names in 'cards' message? Maybe initially generate local name from playerID, & never update it remotely. 
 // - Server just broadcasts any name message it receives (name message would include playerID).
@@ -90,10 +108,12 @@ class CursorPlay extends Component {
 
 function mapCardToName(card) {
 	let name = "";
-	if (card == 54) {			// rear of card
-		name = 'b';
+	if (card == 0) {			// no card
+		name = 'no-card';
 	} else if (card == 55) {	// card being dragged
-		name ='bd';
+		name ='bjd';
+	} else if (card == 54) {			// rear of card
+		name = 'bj';
 	} else if (card == 53) {	// joker
 		name = 'j';
 	}else {
@@ -113,16 +133,11 @@ class Card extends Component {
 	
 	render(props, state) {
 		let card = props.card;
-		if (card == 0)
-			return h('div', {className: 'nocard', id: props.id});
-		
 		let name = mapCardToName(card);
-		return h('div', {className: 'card Player' + props.playerID}, 
+		return h('div', {className: 'card' + ( (props.playerID != undefined) ? ' Player' + props.playerID : '')}, 
 			h('img', {src: "/static/cardimages/" + name + ".gif", 
 						id: props.id,
-						//className: 'card', 
 						onmousedown: e => e.preventDefault(),	// stop the image being dragged
-						// use mouseover, mouseout (and id) instead... onmouseover: e => console.log("over card: " + name),	// can report when mouse is over a card
 						})
 			);	
 	}
@@ -135,15 +150,16 @@ class Player extends Component {
 		let bolded = (renderingThisPlayer) ? ' bolded' : '';
 		return h('div', {className: 'player Player' + props.playerID + bolded}, 
 			(renderingThisPlayer 
-				? h('input', {className: 'entry', value: playerName,
+				? h('input', {className: 'nameEntry', value: playerName,
 						oninput: e => {	// such a dirty hack! Should ideally keep the name as a state & pass upward, but hey!
-							playerName = e.srcElement.value; 
+							playerName = e.target.value; 
 							socket.emit('name', {thisPlayer, playerName})
 						},
-						onfocus: e => {	e.srcElement.select() }	// highlight all the text when clicking on the input box
+						onfocus: e => {	props.kbLock(true); e.target.select(); },		// highlight all the text when clicking on the input box
+						onblur:  e => { props.kbLock(false); },
 				})
-				: h('div', null, props.name)), 
-			range(0,2).map( (r) => h('div', {className: 'player-row'}, 
+				: h('div', {className: 'nameEntry'}, props.name)), 
+			range(0,2).map( (r) => h('div', {className: 'card-row'}, 
 				range(0, 3).map( (c) => (h(Card, {card: props.cards[r*3 + c], playerID: props.playerID, id: "P" + props.playerID + (r*3 + c) })))	// {type: "player", player: props.playerID, card: (r*3 + c)} 
 				)
 			)
@@ -156,28 +172,51 @@ class DrawArea extends Component {
 	// http://jsfiddle.net/wUrdM/ relative positioning
 	// https://stackoverflow.com/questions/11143273/position-div-relative-to-another-div
 	render(props, state) {
-		return h('center', {className: "drawArea"}, 
-			h('div', {position: 'relative'}, 
-				h(Card, {card: props.cards[0],  id: 'D0'}),
-				h('div', {position: 'absolute', top: '10px', left: '30px'}, 
-					h(Card, {card: props.cards[1], id: 'D1'})
-				)
+		return h('div', {className: "drawArea"},
+			h('div', {className: 'helpText'}, 
+				h('div', {className: 'helpLine'}, 'Reminders:'),
+				h('div', {className: 'helpLine'}, '10: peek at own card'),
+				h('div', {className: 'helpLine'}, "Jack: peek at another's card"),
+				h('div', {className: 'helpLine'}, 'Queen: swap any card with another'),
+				h('div', {className: 'helpLine'}, 'Red King: 0 points'),
 			),
-			h(Card, {card: props.cards[2], id: 'D2'}),
-			h('button', {id: 'shuffle'}, "Shuffle"),
-			h('button', {id: 'showCards'}, "Show Cards"),
-			h('div', null, '10: peek at own card'),
-			h('div', null, 'J: peek at anothers card'),
-			h('div', null, 'Q: swap own card with another'),
-			h('div', null, 'Red K: 0 points'),
-			)
+			h('div', {className: 'drawCards'},
+				h('div', {className: 'discardPile'}, 
+					h('div', {className: 'discardUpper'}, 
+						h(Card, {card: props.cards[1],  id: 'D1'})
+					),
+					h('div', {className: 'discardLower'}, 
+						h(Card, {card: props.cards[0], id: 'D0'})
+					),
+				),
+				h('div', {className: 'drawPile'}, 
+					h(Card, {card: props.cards[2], id: 'D2'}))
+			),
+			h('div', {className: 'buttons'}, 
+				h('div', null, h('button', {id: 'shuffle'}, "Shuffle")),
+				h('div', null, h('button', {id: 'showCards'}, "Show Cards"))
+			),
+		)
 	}
 }
 
 class DragArea extends Component {
 	
 	render(props, state) {
-		return h('div', {className: 'dragArea', id: "dragArea" /*, onmouseover: e => console.log("entered drag area")*/}, 'drag a card to this area to view it')
+		return h('div', {className: 'dragArea', id: "dragArea" /*, onmouseover: e => console.log("entered drag area")*/}, 'drag a card here to view it')
+	}
+}
+
+class snapArea extends Component {
+	
+	render(props, state) {
+		return h('div', {className: 'snaps'},
+					h('div', {className: 'snapHeader'}, 'Snaps (hit space)'),
+					h('div', {className: 'snapButton'}, h('button', {id: 'clearSnaps'}, "Clear")),
+					props.snapTimes.map( time => ( h('div', {className: 'snapTime'}, time)) ),
+
+				
+				);
 	}
 }
 
@@ -192,9 +231,9 @@ class DraggedCards extends Component {
 		return 	h('div', null,
 				props.mice.map( mouse => (
 					(mouse.cardID == 0) 
-					? h('div', {className: 'draggable icon Player'+mouse.id,
+					? h('div', {className: 'draggable playerMouse Player'+mouse.id,
 						style: {left: mouse.x, top: mouse.y, visibility: (mouse.id == thisPlayer ? 'hidden' : 'visible')},
-						}, '\u270B')	// hand icon
+						}, '\u270B')	// hand as player's mouse icon - https://unicode-table.com/en/270B/
 					: h('img', {src: "/static/cardimages/" + mapCardToName(mouse.cardID) + ".gif", 
 						className: 'card draggable Player' + mouse.id, 
 						style: {left: mouse.x, top: mouse.y, visibility: (mouse.cardID > 0 ? 'visible' : 'hidden')},
@@ -208,6 +247,7 @@ class DraggedCards extends Component {
 
 // messages server -> client:
 // * playerID - the id allocated to this player
+// * names - ids, names for all 5 players. Don't use the name for your own client.
 // * cards - list of all cards in set locations. Sent only when there's a card change, so infrequent
 //   an array of 5 for all players (each being an array of 5), plus an array for the cards in the draw area
 // * mice - one struct per player. Sent very frequently to track all players mouse movements
@@ -222,7 +262,7 @@ class DraggedCards extends Component {
 // * mousedown - mouse coords, and button state. Sent only when necessary, so infrequent
 // * mouseup   - mouse coords, and button state. Sent only when necessary, so infrequent
 
-class Cambio extends Component {
+class Campari extends Component {
 	constructor() {
 		super();
 		// horrible to initialise like this. Must be a better way to avoid null errors etc.
@@ -240,16 +280,21 @@ class Cambio extends Component {
 		this.state = {
 			cards: cards,
 			mice: [],
-			//mouse: {x: 0, y: 0, buttons: 0},	// temp
 			names: ['', '', '', '', '',],
+			snaps: [],
 		};
+		
+		// keyboard locking
+		this.kbLocking = false;
 		
 		// mouse tracking
 		this.mouse = {x: 0, y:0, buttons: 0};
+		this.onKeydown   = this.onKeydown.bind(this);
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseUp   = this.onMouseUp.bind(this);
-		this.onMouseOut = this.onMouseOut.bind(this);
+		this.onMouseOut  = this.onMouseOut.bind(this);
+		this.kbLock      = this.kbLock.bind(this);
 		setInterval( () => {
 			this.setState({mouse: this.mouse});
 			socket.emit("mousemove", this.mouse);
@@ -257,19 +302,37 @@ class Cambio extends Component {
 		
 		// messages from the server
 		socket.on('cards', (cards) => {
-			this.setState( {cards: cards, mice: this.state.mice, names: this.state.names} );
+			this.setState( {cards: cards} );
 		});
 		
 		socket.on('mice', (mice) => {
-			this.setState( {cards: this.state.cards, mice: mice, names: this.state.names} );
+			this.setState( {mice: mice} );
 		});
 		
-		socket.on('names', (update) => {	// update all new names as they arrive
-			console.log(JSON.stringify(update));
-			this.setState( {cards: this.state.cards, mice: this.state.mice, names: update} );
+		socket.on('names', (update) => {
+			//console.log(JSON.stringify(update));
+			this.setState( {names: update} );
+		});
+		
+		socket.on('snaps', (update) => {
+			//console.log(JSON.stringify(update));
+			this.setState( {snaps: update} );
 		});
 	}
 	
+	componentDidMount() {
+		// put the event callback here so that it has access to 'this'
+		document.onkeydown = this.onKeydown;
+	}
+	
+	onKeydown(e) {
+		// track key presses - only process if the keyboard isn't attached to the input field
+		if (!this.kbLocking && e.key == ' ' && !e.repeat) {
+			console.log('Document Key pressed: ' + e.keyCode);
+			socket.emit('snap', e.keyCode);		// inform the server
+		}
+	}
+  
 	// https://www.w3schools.com/jsref/obj_mouseevent.asp
 	// https://www.w3schools.com/jsref/dom_obj_event.asp the different events available
 	onMouseMove(e) {	
@@ -299,24 +362,34 @@ class Cambio extends Component {
 			socket.emit('mouseover', z.id);
 		}
 	}
+	
+	kbLock(b) {
+		// called when an input field has the keyboard focus
+		this.kbLocking = b;
+	}
+		
 
 	render(props, state) {
 	
-		return h('div', { //className: "campari", 
+		return h('div', { className: "campari", 
 						onmousemove: e => this.onMouseMove(e), 
 						onmousedown: e=>this.onMouseDown(e), 
 						onmouseup: e=>this.onMouseUp(e), 
-						onmouseout: e => this.onMouseOut(e)}, 
-			h('div', {className: 'opponents'}, 
-				range(0, 3).map( (c) => h(Player, {name: state.names[c], index: c, playerID: c, cards: state.cards.players[c]}))),
+						onmouseout: e => this.onMouseOut(e),
+						//onkeypress: e => console.log('Key pressed: ' + e.charCode),	// doesn't capture sufficient
+						},
+			h('h1', null, 'Campari'),
+			h(DragArea),
+			h('div', {className: 'players'}, 
+				range(0, 3).map( (c) => h(Player, {name: state.names[c], index: c, playerID: c, cards: state.cards.players[c], kbLock: this.kbLock}))),
 			h(DrawArea, {cards: state.cards.drawarea}),
-			h('div', {className: 'opponents'}, 
-				range(3, 2).map( (c) => h(Player, {name: state.names[c], index: c, playerID: c, cards: state.cards.players[c]}))),
+			h('div', {className: 'players'}, 
+				range(3, 2).map( (c) => h(Player, {name: state.names[c], index: c, playerID: c, cards: state.cards.players[c]})),
+				h(snapArea, {snapTimes: state.snaps}),
+			),
 			h(DragArea),
 			h('div', {className: 'bottomMargin'}),	// need this to allow drag to the DragArea from below
 			h(DraggedCards, {mice: this.state.mice}),
-
-
 		);
 	}		
 }
@@ -324,10 +397,7 @@ class Cambio extends Component {
 class App extends Component {
 	
 	render(props, state) {
-		return	h("div", {className: "campari",}, 
-			h('h1', null, 'Campari'),
-			h(Cambio),
-		);
+		return	h(Campari);
 	}
 }
 
