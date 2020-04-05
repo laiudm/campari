@@ -399,4 +399,4 @@
     if ('undefined' != typeof module) module.exports = preact; else self.preact = preact;
 }();
 
-let {h, render, Component} = preact;
+//let {h, render, Component} = preact;

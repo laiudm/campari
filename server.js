@@ -160,7 +160,7 @@ io.on('connection', function(socket) {
 	var player = players[socket.id] || {};
 	player.mouseover = data;
 	var valid = false;
-	//console.log('mouseover - mouseover: ' + player.mouseover + ' dragging: ' + player.dragSource);
+	console.log('mouseover - mouseover: ' + player.mouseover + ' dragging: ' + player.dragSource);
 	
 	// See whether the this a valid drag target. If so mark it.
 	[dragSource, pss, iss] = extractDrag(player.dragSource);
@@ -198,6 +198,7 @@ io.on('connection', function(socket) {
   });
   
   socket.on('mousemove', function(data) {
+	console.log('mousemove ' + JSON.stringify(data));
 	var player = players[socket.id] || {};
 	player.x = data.x;
 	player.y = data.y;
@@ -205,7 +206,7 @@ io.on('connection', function(socket) {
   });
 
   socket.on('mousedown', function(data) {
-	//console.log('mousedown before - Mice ' + JSON.stringify(mice));
+	console.log('mousedown ' + JSON.stringify(data));
 	var player = players[socket.id] || {};
 	player.buttons = data.buttons;
 	player.dragSource = player.mouseover;
@@ -239,6 +240,7 @@ io.on('connection', function(socket) {
   });
 
   socket.on('mouseup', function(data) {
+	  console.log('mouseup ' + JSON.stringify(data));
 	var player = players[socket.id] || {};
 	player.buttons = data.buttons;
 	player.x = data.x;
@@ -384,7 +386,7 @@ setInterval(function() {
 					}
 				}
 			}
-			mice.push( {id: player.id, x: player.x+5, y: player.y+5, cardID: cardID});	
+			mice.push( {id: player.id, x: player.x-30, y: player.y-30, cardID: cardID});	
 			
 		};
 		p.socket.emit('mice', mice);

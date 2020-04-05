@@ -4,6 +4,8 @@
 
 h1 {
   text-align: center;
+  margin-block-start: 5px;
+  margin-block-end: 2px;
 }
 img {
   padding: 5px;
@@ -11,14 +13,14 @@ img {
 
 .campari {
   display: inline-block;
-  height: 850px;
+  height: 780px;
   width: 820px;
   background: #eee;
 }
 
 .players {
 	text-align: center;
-	padding: 10px 1px 10px 1px;
+	padding: 5px 1px 5px 1px;
 	margin-left: auto;	/* centre it horizontally */
 	margin-right: auto;
 }
@@ -81,7 +83,7 @@ img {
 }
 
 .drawArea {
-  padding: 20px 5px 20px 5px;
+  padding: 10px 5px 5px 5px;
   display: flex;
 
 }
@@ -156,6 +158,7 @@ button {
 
 .draggable {
   position: absolute;
+  pointer-events: none;
 }
 
 .card.draggable {	/* https://stackoverflow.com/questions/11918491/using-two-css-classes-on-one-element, https://www.w3.org/TR/selectors-3/#specificity*/
@@ -180,6 +183,7 @@ button {
 
 .snapTime {
   font-size: 1em;
+  pointer-events: none
 }
 
 .snapButton {

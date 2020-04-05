@@ -1,5 +1,6 @@
-//let {h, render, Component} = preact;
 
+
+// Utilities: 
 // From http://stackoverflow.com/questions/3895478/does-javascript-have-a-method-like-range-to-generate-an-array-based-on-suppl
 function range(start, count) {
   return Array.apply(0, Array(count))
@@ -8,8 +9,10 @@ function range(start, count) {
   });
 }
 
-var socket = io();
+// Campari Card Game code starts here:
 
+let {h, render, Component} = preact;
+var socket = io();
 
 var thisPlayer = -1;		// the server will initialise this
 var playerName = '';
@@ -22,45 +25,37 @@ socket.on('playerID', function(data) {
   playerName = 'enter your name';
 });
 
-class CursorPlay extends Component {
-	constructor() {
-		super();
-		this.state = {
-			players: {}
-		};
-		
-		socket.on('state', (players) => {
-			this.setState( {players: players} );
-		});
-	}
-	
-	render(props, state) {
-		return	h(Canvas, {players: this.state.players}, props);
-	}
-}
-
-// Campari Card Game code starts here:
 
 // Todos:
 
-// improve snap times display
+// Touch - need equivalent of keyboard 'snap' entry. Tap on 'snap' area?
+// Touch - since there's no equivalent of mouse cursor, turn cursors off for touch clients when displayed on other clients?
+
+// improve display of snap times
+// prevent scroll bars appearing - happens when dragging outside the game area. Prevent mouse movement outside
 
 // more visual feedback when dragging - show when drag is valid:
 // - each card has a border - change the border-colour to that of the dragger when it's a valid drag
 // - would need to add logic to mouseover event in server, and messages from server to clients need to include border-colours
-// - 
 // more visual feedback when dragging - flash cards to indicate success
 // more visual feedback when dragging - animate card swap
 
-
-// * prevent highlighting text, elements when dragging
-// prevent scroll bars appearing
-// some elements have 'disabled' which is invalid
-// offset card drag to over the card - hard because it affects mouse-out events. Solve instead with improved visual feedback?
 // Allow variable no. of players - not really needed
 
 
 // Done:
+// Touch - sort-of working, but there are offsets & it's a bit fiddly. No, it was because I need to check what the touch is over on touchdown event.
+// First step in implementing touch. touchdown, touchmove, touchend implemented & using elementFromPoint for drag/drop. Touch movements mapped to mouse movements to the server.
+// - so no code changes on the server
+// - touch doesn't have an equivalent of mouseout event, but can find an element from mouse coords:
+// - https://stackoverflow.com/questions/8813051/determine-which-element-the-mouse-pointer-is-on-top-of-in-javascript - use that? 
+// - https://developer.mozilla.org/en-US/docs/Web/API/DocumentOrShadowRoot/elementFromPoint
+// - generates a message on each mouse move, so change to only do anything when it changes?
+// offset card drag to over the card - hard because it affects mouse-out events. Solved instead with improved visual feedback?. Solved using pointer-events: none:
+// - https://developer.mozilla.org/en-US/docs/Web/API/DocumentOrShadowRoot/elementFromPoint Says it can ignore elements with pointer-events: none. 
+// --  so this could maybe allow the dragged card to be under the mouse?
+// some elements have 'disabled' which is invalid
+// * prevent highlighting text, elements when dragging
 // more visual feedback when dragging - show when drag is valid
 // - when valid, target card shows 'dragging' card
 // space bar for snap
@@ -210,7 +205,7 @@ class DragArea extends Component {
 class snapArea extends Component {
 	
 	render(props, state) {
-		return h('div', {className: 'snaps'},
+		return h('div', {className: 'snaps', id: 'snaparea'},
 					h('div', {className: 'snapHeader'}, 'Snaps (hit space)'),
 					h('div', {className: 'snapButton'}, h('button', {id: 'clearSnaps'}, "Clear")),
 					props.snapTimes.map( time => ( h('div', {className: 'snapTime'}, time)) ),
@@ -284,8 +279,9 @@ class Campari extends Component {
 			snaps: [],
 		};
 		
-		// keyboard locking
+		// keyboard locking - only trap keyboard entries when the input element isn't selected.
 		this.kbLocking = false;
+		this.lastID = '';		// generate the equivalent of mouseout messages 
 		
 		// mouse tracking
 		this.mouse = {x: 0, y:0, buttons: 0};
@@ -293,12 +289,15 @@ class Campari extends Component {
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseUp   = this.onMouseUp.bind(this);
-		this.onMouseOut  = this.onMouseOut.bind(this);
+		this.onTouchStart= this.onTouchStart.bind(this);
+		this.onTouchEnd  = this.onTouchEnd.bind(this);
+		this.onTouchMove = this.onTouchMove.bind(this);
+		//this.onMouseOut  = this.onMouseOut.bind(this);
 		this.kbLock      = this.kbLock.bind(this);
-		setInterval( () => {
-			this.setState({mouse: this.mouse});
-			socket.emit("mousemove", this.mouse);
-			}, 1000 / 20);
+		//setInterval( () => {
+		//	this.setState({mouse: this.mouse});
+		//	socket.emit("mousemove", this.mouse);
+		//	}, 1000 / 20);
 		
 		// messages from the server
 		socket.on('cards', (cards) => {
@@ -335,10 +334,21 @@ class Campari extends Component {
   
 	// https://www.w3schools.com/jsref/obj_mouseevent.asp
 	// https://www.w3schools.com/jsref/dom_obj_event.asp the different events available
-	onMouseMove(e) {	
+	onMouseMove(e) {
+		e.preventDefault(); 	 		// stops the mouse-drag selecting other elements.
 		this.mouse.x = e.clientX;
 		this.mouse.y = e.clientY;
 		this.mouse.buttons = e.buttons;
+		console.log('Mouse move: ' + JSON.stringify(this.mouse));
+		let id = document.elementFromPoint(e.clientX, e.clientY).id;	// see which element the mouse is over
+		if (this.lastID != id) {	// only process on change, otherwise it happens on each movement
+			this.lastID = id;
+			if (id != null) {
+				console.log('mouse is over ' + id);
+				socket.emit('mouseover', id);
+			}
+		}
+		socket.emit('mousemove', this.mouse);
 	};
 	
 	onMouseDown(e) {
@@ -354,14 +364,64 @@ class Campari extends Component {
 		this.mouse.buttons = e.buttons;	
 		socket.emit('mouseup', this.mouse);		// report this immediately as an event
 	}
+	
+	onTouchStart(e) {
+		e.preventDefault();
+		let touch = e.targetTouches[0];
+		this.mouse.x = touch.clientX;
+		this.mouse.y = touch.clientY;
+		this.mouse.buttons = 1;	// simulate the left-mouse button down. But I don't use this anywhere anyway
 		
-	onMouseOut(e) {
-		let z = e.relatedTarget;
-		if (z != null) {
-			console.log("OnmouseOut - related target is "+ z.id);	// this gives the newly entered item.
-			socket.emit('mouseover', z.id);
+		let id = document.elementFromPoint(touch.clientX, touch.clientY).id;	// see which element the touch is over
+		if (this.lastID != id) {	// only process on change, otherwise it happens on each movement
+			this.lastID = id;
+			if (id != null) {
+				console.log('mouse is over ' + id);
+				socket.emit('mouseover', id);
+				
+				if (id == 'snaparea') {					// touch equivalent of hitting the spacebar
+					socket.emit('snap', 'touch');		// inform the server
+				}
+			}
 		}
+		
+		socket.emit('mousedown', this.mouse);
 	}
+	
+	onTouchEnd(e) {
+		e.preventDefault();
+		let touch = e.changedTouches[0];
+		this.mouse.x = touch.clientX;
+		this.mouse.y = touch.clientY;
+		this.mouse.buttons = 0;	// simulate the left-mouse button up. But I don't use this anywhere anyway
+		socket.emit('mouseup', this.mouse);
+		this.lastID = '';	// reset the element recognition
+	}
+
+	onTouchMove(e) {
+		e.preventDefault();
+		let touch = e.targetTouches[0];
+		this.mouse.x = touch.clientX;
+		this.mouse.y = touch.clientY;
+		this.mouse.buttons = 1;	// simulate the left-mouse button down.But I don't use this anywhere anyway
+		let id = document.elementFromPoint(touch.clientX, touch.clientY).id;	// see which element the touch is over
+		if (this.lastID != id) {	// only process on change, otherwise it happens on each movement
+			this.lastID = id;
+			if (id != null) {
+				console.log('mouse is over ' + id);
+				socket.emit('mouseover', id);
+			}
+		}
+		socket.emit('mousemove', this.mouse);
+	}
+		
+	//onMouseOut(e) {
+	//	let z = e.relatedTarget;
+	//	if (z != null) {
+	//		console.log("OnmouseOut - related target is "+ z.id);	// this gives the newly entered item.
+	//		//socket.emit('mouseover', z.id);
+	//	}
+	//}
 	
 	kbLock(b) {
 		// called when an input field has the keyboard focus
@@ -373,9 +433,12 @@ class Campari extends Component {
 	
 		return h('div', { className: "campari", 
 						onmousemove: e => this.onMouseMove(e), 
-						onmousedown: e=>this.onMouseDown(e), 
-						onmouseup: e=>this.onMouseUp(e), 
-						onmouseout: e => this.onMouseOut(e),
+						onmousedown: e => this.onMouseDown(e), 
+						onmouseup:   e => this.onMouseUp(e), 
+						ontouchmove: e => this.onTouchMove(e),
+						ontouchstart:e => this.onTouchStart(e),
+						ontouchend:  e => this.onTouchEnd(e),
+						//onmouseout: e => this.onMouseOut(e),
 						//onkeypress: e => console.log('Key pressed: ' + e.charCode),	// doesn't capture sufficient
 						},
 			h('h1', null, 'Campari'),
